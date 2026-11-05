@@ -9,7 +9,7 @@ export const toMj = v => [v.x, -v.z, v.y];
 export const fromMj = (x, y, z) => new THREE.Vector3(x, z, -y);
 
 export function buildScene(mj, model, scene) {
-  const T = mj.mjtGeom, bodies = {}, meshCache = {};
+  const T = mj.mjtGeom, bodies = {}, meshCache = {}, matCache = {};
   for (let g = 0; g < model.ngeom; g++) {
     if (model.geom_group[g] > 2) continue;
     const b = model.geom_bodyid[g], type = model.geom_type[g];
@@ -40,8 +40,9 @@ export function buildScene(mj, model, scene) {
       geo = meshCache[id];
     } else continue;
     const transparent = rgba[3] < 0.99;
-    mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(rgba[0], rgba[1], rgba[2]), roughness: 0.6, metalness: 0.05,
-      transparent, opacity: rgba[3], side: THREE.DoubleSide });
+    const mkey = rgba.join(',');                                    // one material per colour: far fewer state changes per frame
+    mat = matCache[mkey] || (matCache[mkey] = new THREE.MeshStandardMaterial({ color: new THREE.Color(rgba[0], rgba[1], rgba[2]), roughness: 0.6, metalness: 0.05,
+      transparent, opacity: rgba[3], side: THREE.DoubleSide }));
     const mesh = new THREE.Mesh(geo, mat);
     mesh.castShadow = !transparent; mesh.receiveShadow = true; mesh.bodyID = b;
     pos(model.geom_pos, g, mesh.position); quat(model.geom_quat, g, mesh.quaternion);

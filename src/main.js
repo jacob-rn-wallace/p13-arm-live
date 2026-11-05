@@ -50,11 +50,11 @@ const scene = new THREE.Scene(); scene.background = new THREE.Color(0xe6ebf0);
 const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.01, 30);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap; renderer.shadowMap.autoUpdate = false;   // shadows are redrawn every other frame (below)
 document.body.prepend(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xf4f8fc, 0x8c96a0, 1.6));
 const sun = new THREE.DirectionalLight(0xffffff, 2.0); sun.position.copy(fromMj(0.6, -0.8, 1.6)); sun.target.position.copy(fromMj(0.2, 0, 0));
-sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005;
+sun.castShadow = true; sun.shadow.mapSize.set(1536, 1536); sun.shadow.bias = -0.0005;
 Object.assign(sun.shadow.camera, { left: -0.8, right: 0.8, top: 0.8, bottom: -0.8, near: 0.2, far: 4 });
 scene.add(sun, sun.target);
 const bodies = buildScene(mj, model, scene);
@@ -255,6 +255,7 @@ function sortStatus() {
   const what = run.phase === 'grip' ? (run.closing ? 'closing the gripper' : 'opening the gripper') : clean(r.note.split(': ')[1]);
   return `<span class="step">Move ${r.move + 1} / ${sort.moves.length}</span>${NAMES[m.bead]} ball, seat ${SEAT[m.from]} → ${SEAT[m.to]}: ${what}<span class="grip">gripper ${run.gripperState()}</span>`;
 }
+let slow = 16, lastFrame = performance.now(), checked = 0, ratio = Math.min(devicePixelRatio, 2);
 let ahead = 0, last = performance.now(), acc = { sim: 0, wall: 0 }, shown = 1, frame = 0, lastPalm = palmPos();
 renderer.setAnimationLoop(() => {
   const now = performance.now(), dt = Math.min((now - last) / 1000, 0.1); last = now;
@@ -270,7 +271,10 @@ renderer.setAnimationLoop(() => {
   if (view === 'hand') { const p = palmPos(), d = p.clone().sub(lastPalm); camera.position.add(d); controls.target.add(d); lastPalm = p; }
   else lastPalm = palmPos();
   if (grab) { const p = grabPoint(); line.geometry.setFromPoints([fromMj(...p), grab.target]); }
-  controls.update(); renderer.render(scene, camera);
+  controls.update(); renderer.shadowMap.needsUpdate = frame % 2 === 0; renderer.render(scene, camera);
+  // slow machine (software rendering, big screen): lower the pixel ratio step by step, never back up
+  slow = 0.95 * slow + 0.05 * (now - lastFrame); lastFrame = now;
+  if (++checked > 90 && slow > 24 && ratio > 1) { ratio = Math.max(1, ratio - 0.25); renderer.setPixelRatio(ratio); checked = 0; }
   if (++frame % 10 === 0) {
     const s = SORT || C4 ? null : run.status();
     if (C4) statusEl.innerHTML = c4Status(); else if (SORT) statusEl.innerHTML = sortStatus(); else
