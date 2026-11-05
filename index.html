@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>P13 Connect 4</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" href="data:,"/>
+  <style>
+    :root { --ink: #1d2733; --ink2: #5a6875; --panel: rgba(255,255,255,.88); --rule: #cfd7df; --on: #2f6fb0; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #e6ebf0; color: var(--ink);
+      font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    canvas { display: block; touch-action: none; }
+    .panel { position: fixed; background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; backdrop-filter: blur(6px); }
+    #title { left: 16px; top: 16px; padding: 8px 12px; }
+    #title b { display: block; font-size: 15px; }
+    #title span { color: var(--ink2); font-size: 12.5px; }
+    #status { left: 50%; top: 16px; transform: translateX(-50%); padding: 7px 14px; white-space: nowrap; font-weight: 500; }
+    #status .step { color: var(--ink2); font-weight: 400; margin-right: 10px; font-variant-numeric: tabular-nums; }
+    #status .grip { color: var(--ink2); font-weight: 400; margin-left: 12px; padding-left: 12px; border-left: 1px solid var(--rule); }
+    #bar { left: 50%; bottom: 16px; transform: translateX(-50%); padding: 6px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 32px); }
+    button { font: inherit; font-size: 13px; color: var(--ink); background: #fff; border: 1px solid var(--rule); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+    button:hover { border-color: #9fb0c0; }
+    button.on { background: var(--on); border-color: var(--on); color: #fff; }
+    .seg { display: flex; }
+    .seg button { border-radius: 0; margin-left: -1px; }
+    .seg button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+    .seg button:last-child { border-radius: 0 6px 6px 0; }
+    #play { min-width: 64px; }
+    #hint { left: 16px; bottom: 16px; padding: 6px 10px; font-size: 12px; color: var(--ink2); max-width: 300px; }
+    #hint a { color: var(--on); }
+    #clock { right: 16px; bottom: 16px; padding: 6px 10px; font-size: 12px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+    #loading { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: center; background: #e6ebf0; }
+    #loading small { color: var(--ink2); }
+    #loading .err { color: #b03a2e; max-width: 80vw; text-align: center; }
+    .m-sort, .m-c4, .m-fw { display: none; }
+    body[data-mode="sort"] .m-sort, body[data-mode="connect4"] .m-c4, body[data-mode="firmware"] .m-fw { display: revert; }
+    body[data-mode="sort"] .seg.m-sort, body[data-mode="connect4"] .seg.m-c4 { display: flex; }
+    #tally { color: var(--ink2); font-variant-numeric: tabular-nums; }
+    .disc { display: inline-block; width: 11px; height: 11px; border-radius: 50%; vertical-align: -1px; margin-right: 5px; }
+    .disc.y { background: #f2c818; } .disc.r { background: #d62a24; }
+    #status .win { color: #1f7a3a; font-weight: 600; margin-right: 8px; }
+    @media (max-width: 900px) { #hint, #title span { display: none; } #status { top: 64px; } }
+  </style>
+</head>
+<body data-mode="connect4">
+  <div id="loading"><b>P13 gripper on Group 1's arm</b><small id="loadmsg">Loading…</small></div>
+  <div id="title" class="panel"><b>P13 gripper on Group 1's arm</b><span class="m-sort">Live physics · ball-sort puzzle</span><span class="m-c4">Live physics · Connect 4 · <span id="tally"></span></span><span class="m-fw">Live physics · the firmware's demo</span></div>
+  <div id="status" class="panel">Starting…</div>
+  <div id="bar" class="panel">
+    <button id="play">Pause</button>
+    <button id="randomize" class="m-sort">Randomize</button>
+    <button id="solve" class="m-sort on">Solve</button>
+    <button id="restart" class="m-sort m-fw">Restart</button>
+    <button id="newgame" class="m-c4 on">New game</button>
+    <button id="first" class="m-c4" title="Who plays first in the next game">You first</button>
+    <div class="seg m-c4" id="level"><button data-v="easy">Easy</button><button data-v="medium" class="on">Medium</button><button data-v="hard">Hard</button></div>
+    <div class="seg" id="speed"><button data-v="0.5">½×</button><button data-v="1">1×</button><button data-v="2" class="on">2×</button><button data-v="4">4×</button></div>
+    <div class="seg" id="view"><button data-v="overview" class="on">Overview</button><button data-v="board" class="m-c4">Board</button><button data-v="hand">Hand</button><button data-v="side">Side</button></div>
+  </div>
+  <div id="hint" class="panel"><span class="m-c4">You are <span class="disc y"></span>yellow: <b>click a column</b> (or press 1–7) to drop a ball; the arm answers in red. </span>Drag to orbit · right-drag to pan · scroll to zoom · <b>Shift-drag</b> to push a ball or the arm · Space pauses · demos: <a href="?demo=connect4">Connect 4</a>, <a href="?demo=sort">ball sort</a>, <a href="?demo=firmware">firmware</a></div>
+  <div id="clock" class="panel"></div>
+  <script>
+    addEventListener('error', e => { const l = document.getElementById('loading'); if (l) { const s = document.createElement('small'); s.className = 'err'; s.textContent = 'Error: ' + (e.message || 'a script failed to load'); l.appendChild(s); } });
+    addEventListener('unhandledrejection', e => { const l = document.getElementById('loading'); if (l) { const s = document.createElement('small'); s.className = 'err'; s.textContent = 'Error: ' + (e.reason && (e.reason.message || e.reason)); l.appendChild(s); } });
+  </script>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
