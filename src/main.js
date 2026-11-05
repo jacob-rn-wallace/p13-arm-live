@@ -188,8 +188,8 @@ if (C4) {
     down = null; hoverFrom(e); if (hoverCol >= 0) humanClick(hoverCol);
   });
   document.getElementById('newgame').onclick = newGame;
-  const firstBtn = document.getElementById('first');
-  firstBtn.onclick = () => { youFirst = !youFirst; firstBtn.textContent = youFirst ? 'You first' : 'Arm first'; };
+  document.querySelectorAll('#first button').forEach(b => b.onclick = () => {
+    youFirst = b.dataset.v === 'you'; document.querySelectorAll('#first button').forEach(x => x.classList.toggle('on', x === b)); });
   document.querySelectorAll('#level button').forEach(b => b.onclick = () => {
     levelKey = b.dataset.v; game.level = levelKey; document.querySelectorAll('#level button').forEach(x => x.classList.toggle('on', x === b)); });
 }
