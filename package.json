@@ -2,6 +2,7 @@
   "name": "p13-arm-live",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Live MuJoCo (WebAssembly) simulation of the P13 gripper on Group 1's arm, running the arm firmware's demo",
   "type": "module",
   "scripts": {

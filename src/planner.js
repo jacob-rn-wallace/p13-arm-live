@@ -1,8 +1,8 @@
 // Planner for the Hanoi bead puzzle (sim/hanoi_layout.py, public/hanoi.json): joint-limited IK (a port of
-// mae451-arm/arm_firmware_P13/matlab/ik_bounded.py, checked against it by test_hanoi.mjs), the classic Hanoi solver for any legal
+// the arm repo's ik_bounded.py, checked against it by test_hanoi.mjs), the classic Hanoi solver for any legal
 // start, a random layout generator, and a move generator that emits rows in demo.json's format
 // ({q: 6 rad, grip: 0/1, note}) after checking every straight joint-space segment against the table, pedestals and coins
-// with the hand's point cloud (as mae451-arm/.../build_sequence.py does for the ball demo).
+// with the hand's point cloud (as the arm repo's build_sequence.py does for the ball demo).
 // Units: mm and rad in here (the MuJoCo model is in m).
 
 const rad = d => d * Math.PI / 180;
